@@ -1,4 +1,4 @@
-﻿/**
+/**
 * Amtasukaze TS Info
 * Copyright (c) 2017-2019 Nekopanda
 *
@@ -161,13 +161,19 @@ void TsInfoParser::onPMT(int pid, PsiSection section) {
     if (section.current_next_indicator() && pmt.parse() && pmt.check()) {
         // 該当プログラムを探す
         ProgramItem* item = getProgramItem(pmt.program_number());
-        if (item != nullptr && item->pmtPid == pid) { // PMT-PIDが合ってるかもチェック
+        // PMT-PIDチェックを緩和：最初のPMTなら受け入れる（カット編集対応）
+        if (item != nullptr && (item->pmtPid == pid || item->pmtPid == -1)) {
+            // PMT-PIDが未設定の場合は更新
+            if (item->pmtPid == -1) {
+                item->pmtPid = pid;
+            }
             // 映像をみつける
             item->hasVideo = false;
             for (int i = 0; i < pmt.numElems(); i++) {
                 PMTElement elem = pmt.get(i);
                 uint8_t stream_type = elem.stream_type();
                 VIDEO_STREAM_FORMAT type = VS_UNKNOWN;
+                // カット編集対応：複数のstream_typeに対応
                 switch (stream_type) {
                 case 0x02:
                     type = VS_MPEG2;
